@@ -1,0 +1,34 @@
+version: "3.9"
+services:
+    n1:
+        image: nats
+        ports:
+            - "8222:8222"
+            - "4222:4222"
+        command: "--name N1 --cluster_name NATS --js --sd /data --cluster nats://0.0.0.0:6222 --routes nats://n1:6222,nats://n2:6222,nats://n3:6222"
+        volumes:
+            - ./nats/n1:/data
+        networks: ["nats"]
+        restart: on-failure
+    n2:
+        image: nats
+        command: "--name N2 --cluster_name NATS --js --sd /data --cluster nats://0.0.0.0:6222 --routes nats://n1:6222,nats://n2:6222,nats://n3:6222"
+        ports:
+            - "4223:4222"
+        volumes:
+            - ./nats/n2:/data
+        networks: ["nats"]
+        restart: on-failure
+    n3:
+        image: nats
+        command: "--name N3 --cluster_name NATS --js --sd /data --cluster nats://0.0.0.0:6222 --routes nats://n1:6222,nats://n2:6222,nats://n3:6222"
+        ports:
+            - "4224:4222"
+        volumes:
+            - ./nats/n3:/data
+        networks: ["nats"]
+        restart: on-failure
+
+networks:
+    nats:
+        name: nats
