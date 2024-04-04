@@ -55,5 +55,5 @@ Pipes that are dealing with _projections_ are the ones that usually emit the `Bl
 
 ## Infrastructure
 
-+ NATS cluster for JetStream
-+ VertX for the API
++ NATS cluster with JetStream - used as the _implementation of the `Ether`. Note the word _implementation_ - `Ether` itself has very simple interface (abstraction) that could be easily replaced with another event engine. Moreover, we can have an in-memory implementation for local development and testing.
++ VertX for the API - because of the way it works, VertX seem as an excellent choice for the API layer.
