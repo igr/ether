@@ -6,15 +6,15 @@ import io.nats.client.JetStreamSubscription
 import io.nats.client.Message
 import io.nats.client.MessageHandler
 import io.nats.client.PushSubscribeOptions
-import io.nats.client.api.PublishAck
 import io.nats.client.impl.NatsMessage
 import org.slf4j.LoggerFactory
 import java.time.Duration
-import java.util.concurrent.CompletableFuture
 
 class NatsEther(private val ngn: NatsEtherNgn) : Ether {
     private val log = LoggerFactory.getLogger(this.javaClass)
 
+    // we need some sort of serializer
+    // todo make serializer implementation pluggable
     private val mapper = jacksonObjectMapper()
 
     init {
@@ -23,6 +23,10 @@ class NatsEther(private val ngn: NatsEtherNgn) : Ether {
         }
     }
 
+    /**
+     * Creates a subscriber for each registered subject.
+     * Subjects represents the boundary?
+     */
     private fun subjectSubscriber(subject: EventSubject) {
         val handler = MessageHandler { msg ->
             val json = String(msg.data)
@@ -34,7 +38,7 @@ class NatsEther(private val ngn: NatsEtherNgn) : Ether {
                 .map {
                     it(event)
                 }.filter {
-                    it !is BlackHole
+                    it !is BlackHole        // stop on BlackHoles
                 }.forEach {
                     justEmit(msg.subject, it)
                 }
@@ -50,19 +54,24 @@ class NatsEther(private val ngn: NatsEtherNgn) : Ether {
             .durable("$streamName-Durable")
             .build()
 
+        // we are using the same dispatcher for all subjects
+        // this means that all messages will be processed in the same thread
+        // todo create a dispatcher for each subject?
         ngn.js.subscribe("${subjectName}.*", ngn.dispatcher, handler, false, so)
         log.info("Subscribed to $subjectName")
     }
 
-    fun emit(event: Event, msgHandler: EtherMessageHandler): CompletableFuture<PublishAck> {
+    override fun emit(event: Event, msgHandler: EtherInPlaceMessageHandler) {
         val streamName = event.meta.subject.toString() + "Stream"
         val subjectName = event.meta.subject.toString()
+        // append unique timestamp to the subject name, to avoid collisions and distinguish the events
         val emitSubjectName = "${subjectName}.${event.meta.timestamp}"
 
         // inner subscribe
         var s: JetStreamSubscription? = null
         val so = PushSubscribeOptions.builder().stream(streamName).build()
 
+        // in-place message handler for tracking ONLY the events in the context of the current emit
         val handler = MessageHandler { msg ->
             val json = String(msg.data)
             val msgEvent = mapper.readValue<Event>(json)
@@ -78,10 +87,10 @@ class NatsEther(private val ngn: NatsEtherNgn) : Ether {
             .build()
 
         log.info("Emit-A event to $emitSubjectName : $event")
-        return ngn.js.publishAsync(msg)
+        ngn.js.publishAsync(msg)
     }
 
-    fun emit(event: Event): CompletableFuture<PublishAck> {
+    override fun emit(event: Event) {
         val subjectName = event.meta.subject.toString()
         val emitSubjectName = "${subjectName}.${event.meta.timestamp}"
 
@@ -91,7 +100,7 @@ class NatsEther(private val ngn: NatsEtherNgn) : Ether {
             .build()
 
         log.info("Emit-B event to $emitSubjectName : $event")
-        return ngn.js.publishAsync(msg)
+        ngn.js.publishAsync(msg)
     }
 
     private fun justEmit(subject: String, event: Event) {
@@ -129,5 +138,3 @@ class NatsEther(private val ngn: NatsEtherNgn) : Ether {
         }
     }
 }
-
-

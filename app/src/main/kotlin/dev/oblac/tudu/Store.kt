@@ -4,7 +4,11 @@ import dev.oblac.tudu.domain.*
 import java.lang.Thread.sleep
 import kotlin.random.Random
 
-// SLOW store. Simulates blocking IO operations.
+/**
+ * Simulates a slow store with blocking IO operations.
+ * Very simple implementation, just to show the idea.
+ * This is a repository.
+ */
 object Store {
 
     private val draftLists = mutableMapOf<ToDoListId, DraftToDoList>()
@@ -12,7 +16,10 @@ object Store {
     private val items = mutableMapOf<ToDoListId, MutableList<ToDoItem>>()
     private val rnd = Random.Default
 
-    private fun sleep() = sleep(10_000 + rnd.nextLong(0, 5000)) // 10-15s
+    /**
+     * Simulate a slow operation by sleeping for a random time (10-15seconds).
+     */
+    private fun sleep() = sleep(10_000 + rnd.nextLong(0, 5000))
 
     fun createNewDraftToDoList(id: ToDoListId): DraftToDoList {
         sleep()

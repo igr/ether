@@ -10,19 +10,19 @@ import dev.oblac.tudu.event.Subject
 fun init(): NatsEther {
     val ngn = NatsEtherNgn("nats://localhost:4222")
 
+    // here we need to bind everything we want to handle in this instance
+
     ngn.bind(Subject.ToDoList)
     ngn.bind(createToDoList)
     ngn.bind(saveToDoList)
     ngn.bind(updateToDoList)
 
-    // todo add bind za listener
+    // todo add bind for listeners
 
     return NatsEther(ngn)
 }
 
+// ETHER
 val ether = init()
-
-
-// projectsions
 
 

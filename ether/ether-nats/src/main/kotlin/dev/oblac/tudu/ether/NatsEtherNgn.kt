@@ -20,11 +20,10 @@ class NatsEtherNgn(natsUrl: String) : EtherNgn {
     }
 
     // subjects
-
-    val subjects = mutableSetOf<EventSubject>()
+    internal val subjects = mutableSetOf<EventSubject>()
 
     @Synchronized
-    fun bind(subject: EventSubject) {
+    override fun bind(subject: EventSubject) {
         if (subject in subjects) {
             return
         }
@@ -58,7 +57,7 @@ class NatsEtherNgn(natsUrl: String) : EtherNgn {
         list.add(pipe as Pipe<Event>)
     }
 
-    fun <T : Event> lookup(event: T): List<Pipe<Event>> {
+    override fun <T : Event> lookup(event: T): List<Pipe<Event>> {
         val key = event::class.qualifiedName!!
         return commands[key] ?: listOf()
     }

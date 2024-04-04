@@ -7,11 +7,13 @@ import dev.oblac.tudu.ether.Event
 import dev.oblac.tudu.ether.EventMeta
 import dev.oblac.tudu.ether.EventSubject
 
+// collection of event subjects
 object Subject {
     val ToDoList = EventSubject("ToDoList")
 }
 
 // todo probably a better syntax if possible
+
 // ----------
 
 data class ToDoListCreateRequested(val listId: ToDoListId) : Event {
@@ -33,8 +35,8 @@ data class ToDoListNotSaved(val reason: String) : Event {
     override val meta = EventMeta(Subject.ToDoList)
 }
 
-
 // ----------
+
 data class ToDoListDeleteRequested(val listId: ToDoListId) : Event {
     override val meta = EventMeta(Subject.ToDoList)
 }

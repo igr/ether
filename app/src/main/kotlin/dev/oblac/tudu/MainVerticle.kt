@@ -10,6 +10,9 @@ import io.vertx.core.http.HttpServerResponse
 import io.vertx.ext.web.Router
 import java.util.*
 
+/**
+ * VetX Verticle that starts an HTTP server and listens for incoming requests.
+ */
 class MainVerticle : AbstractVerticle() {
 
     override fun start(startPromise: Promise<Void>) {
@@ -76,8 +79,9 @@ class MainVerticle : AbstractVerticle() {
     }
 }
 
-// handlers
+// handlers -------------------------------------------------------------------
 
+// Example of blocking handler with in-place event listener.
 fun createDraftToDoListBlocking(response: HttpServerResponse) {
     ether.emit(ToDoListCreateRequested(ToDoListId.new())) { event, finish ->
         if (event is ToDoListCreated) {
@@ -88,6 +92,7 @@ fun createDraftToDoListBlocking(response: HttpServerResponse) {
     }
 }
 
+// Fire and forget handler, not listening for the results.
 fun createDraftToDoList(response: HttpServerResponse) {
     val id = ToDoListId.new()                   // todo should come from the Store
     ether.emit(ToDoListCreateRequested(id))
@@ -96,6 +101,7 @@ fun createDraftToDoList(response: HttpServerResponse) {
     response.end("LIST created: $id")
 }
 
+// Handler that comes with the operation ID that could be queried later.
 fun saveDraftToDoList(response: HttpServerResponse, listId: ToDoListId, name: ToDoListName) {
     val operationId = UIOperations.start()
 
@@ -129,6 +135,7 @@ fun saveDraftToDoListBlocking(response: HttpServerResponse, listId: ToDoListId, 
     }
 }
 
+// reads projections
 fun queryToDoLists(response: HttpServerResponse) {
     response.putHeader("content-type", "text/plain")
     response.end(TodoListsProjection.todoLists.toString())
