@@ -1,6 +1,6 @@
 # Tu.Du.
 
-Event Driven Architecture POC on NATS and VertX.
+Meet **`Ether`** ♒️ - Event Driven Arch POC on NATS and VertX.
 
 ⚠️ This is `Either<Stupid, Great>`, I still can not figure. It's built in 2 days time.
 
@@ -55,5 +55,9 @@ Pipes that are dealing with _projections_ are the ones that usually emit the `Bl
 
 ## Infrastructure
 
-+ NATS cluster with JetStream - used as the _implementation of the `Ether`. Note the word _implementation_ - `Ether` itself has very simple interface (abstraction) that could be easily replaced with another event engine. Moreover, we can have an in-memory implementation for local development and testing.
++ NATS cluster with JetStream - used as the _implementation_ of the `Ether`. Note the word _implementation_ - `Ether` itself has very simple interface (abstraction) that could be easily replaced with another event engine. Moreover, we can have an in-memory implementation for local development and testing.
 + VertX for the API - because of the way it works, VertX seem as an excellent choice for the API layer.
+
+## Should I stay or should I go?
+
+I feel some potential in this framework, but I am just tired and can not think straight 🤷‍♂️ Let me know.
