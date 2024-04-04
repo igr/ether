@@ -51,6 +51,8 @@ Pipes that are dealing with _projections_ are the ones that usually emit the `Bl
 
 ⭐️ Events are executed one after the another, in the single-threaded dispatcher.
 
+⭐️ Events are grouped in _subjects_ of interest. Each subject is a separate event stream. Atm there only one dispatcher for all subjects and events, but this will probably change, as might need one dispatcher per subject.
+
 ## Infrastructure
 
 + NATS cluster for JetStream
