@@ -1,14 +1,23 @@
-# Tu.Du.
+# **`Ether`** ♒️ & **`Matter`** ⚛️
 
-Meet **`Ether`** ♒️ - Event Driven Arch POC on NATS and VertX.
+Welcome to Event Drive thought experiment ended up as a small engine.
 
-⚠️ This is `Either<Stupid, Great>`, I still can not figure. It's built in 2 days time.
+⚠️ This is `Either<Stupid, Great>`, still can't figure. Built in 3 days time.
 
-## Key concepts
++ If this make sense, I would like to thank: [Dejan](https://github.com/DejanMilicic), [Ivan](https://fraktalio.com). They know way more than me about this stuff.
++ If this is stupid, that's on me only :)
 
-⭐️ Every app is event-driven. The **unit of work** (UOW) is just a function of a _single_ input, producing a _single_ output. We can connect UOWs by their input/output types, like... pipes. Hence we refer the UOW as a **pipe**.
+## Pipes 🌊
 
-⭐️ A pipe is a function that takes an input and produces an output. It represents a **unit of work**. Pipes can be connected to each other, forming a mesh.
+⭐️ Every app in the nutshell is a event-driven app. The **unit of work** (UOW) is just a function of a _single_ input, producing a _single_ output. We can connect UOWs by their input/output types, like... pipes. Hence we refer the UOW as a **pipe**.
+
+⭐️ A **pipe** is a function that takes an _input_ and produces an _output_. It represents a **unit of work**. Pipes can be connected to each other, forming a mesh.
+
+Pipe receives _only_ a `Event`. Pipe produces _only_ a `Event`. Events are connections between pipes. Is a pipe a _event handler_? Possibly. Is a pipe a _command_? Possibly.
+
+We may say that the application is a mesh of pipes, connected together. Here is a beautiful schema that illustrates the idea:
+
+![](./doc/mesh.png)
 
 Example of a pipe:
 
@@ -19,15 +28,17 @@ val createToDoList = Pipe<ToDoListCreateRequested> {
 }
 ```
 
-⭐️ `Ether` is a glorious name for the Event bus that connects pipes. It is a simple abstraction over some event engine, providing a way to publish and subscribe to events.
+## Ether ♒
 
-Once created, an event may be fired (and forget) like this:
+⭐️ `Ether` is a glorious name for the Event bus engine abstraction that connects pipes and runs events on it. It is a very simple abstraction, that can be implemented in various ways. In this case, it is implemented with [NATS](https://nats.io/).
+
+Event may be fired (and forget):
 
 ```kt
 ether.emit(ToDoListCreateRequested(id))
 ```
 
-This will trigger the execution of all pipes connected somehow to the initial event. The execution is asynchronous and non-blocking.
+This will trigger the execution of all pipes connected somehow to the initial event. The execution is asynchronous and non-blocking to the calling place.
 
 Event may be fired with a in-place listener:
 
@@ -43,21 +54,91 @@ ether.emit(ToDoListSaveRequested(listId, name)) { event, finish ->
 }
 ```
 
-Cool thing here is that provided lambda ONLY listens to events in the context of the current execution. It is NOT a global listener. So, ONLY events that are created by pipes executed during this operation will be handled.
+Cool thing here is that provided lambda ONLY listens to events in the context of the current execution. It is NOT a global listener. Again, ONLY events that are created by pipes executed during this operation will be handled. This is cool when we want to have a listener that is only active during the current operation (non-blocking request/response)
+
+## Events ⚡️
+
+⭐️ Events belong to a **Realm**. Realm is a simple name that represents a boundary.
+
+⭐️ Events are executed one after the another, in the single-threaded fashion, _within the same boundary_. This is important, as it allows us to have a consistent state of the application.
 
 ⭐️ `BlackHole` is a sink event. It is a special event that is not emitted by any pipe. It is used to terminate the event flow. It is like a `null` in the event world.
 
-Pipes that are dealing with _projections_ are the ones that usually emit the `BlackHole` event.
+Pipes that are updating _projections_ are the ones that usually returns the `BlackHole` event.
 
-⭐️ Events are executed one after the another, in the single-threaded dispatcher.
+## Matter ⚛️
 
-⭐️ Events are grouped in _subjects_ of interest. Each subject is a separate event stream. Atm there only one dispatcher for all subjects and events, but this will probably change, as might need one dispatcher per subject.
+```
+Pipe = Pure + Matter
+```
 
-## Infrastructure
+We can go further with abstractions and remove explicit state handling from the `Pipe` functions. This is where the `Matter` comes in. It is a simple interface that knows how to:
 
-+ NATS cluster with JetStream - used as the _implementation_ of the `Ether`. Note the word _implementation_ - `Ether` itself has very simple interface (abstraction) that could be easily replaced with another event engine. Moreover, we can have an in-memory implementation for local development and testing.
-+ VertX for the API - because of the way it works, VertX seem as an excellent choice for the API layer.
++ load state from the storage for given (input) event
++ save state to the storage for given (resulting) event
 
-## Should I stay or should I go?
+This allows us to extract state handling and have **pure functions** that are only concerned with the business logic.
 
-I feel some potential in this framework, but I am just tired and can not think straight 🤷‍♂️ Let me know.
+⭐️ `Matter` implementation is done by user:
+
+```kt
+class StoreMatter : Matter {
+    override fun <S> loadState(event: Event): S {
+        return when (event) {
+            is ToDoListSaveRequested -> {
+                SaveToDoListState(...)
+            }
+		}
+    }
+
+    override fun <SIN> saveState(state: SIN, event: Event) {
+        when (event) {
+            is ToDoListSaved -> {
+                // save state
+			}
+        }
+    }
+}
+```
+
+Notice the `SaveToDoListState` - simple data class that holds the necessary input state for the business logic.
+
+⭐️ Our `Pipe` may be designed now as a `Pure`:
+
+```kt
+val saveToDoList = Pure<ToDoListSaveRequested, SaveToDoListState> { _, it ->
+    if (it.draftToDoList == null) {
+        return@Pure ToDoListNotSaved("Draft list not found")
+    }
+    val newTodoList = ToDoList(it.draftToDoList.id, it.name)
+    ToDoListSaved(newTodoList)
+}
+```
+
+It is a pure function! Is it a `decider`/`evolver`? Possibly.
+
+`Pure` function is transformed into a `Pipe` by the... well, `Piper`:
+
+```kt
+Piper(matter)(saveToDoList)
+```
+
+⭐️ `Matter` may be implemented in various ways:
+
++ transactional, traditional database
++ in-memory, for testing
++ event-sourced, for the event-sourced systems
+
+## Infrastructure ⚙️
+
+⭐️ [NATS](https://nats.io) cluster with JetStream - used as the _implementation_ of the `Ether` in the example. `Ether` itself has very simple interface (abstraction) that could be easily replaced with another event engine. Moreover, we can have an in-memory implementation for local development and testing.
+
+With Nats, pipes can be deployed anywhere. There is also an option that I didn't have time to explore for horizontal scaling of the pipes (using Nats groups).
+
+⚠️ I haven't spent much time on the infrastructure part, so it is a bit rough, maybe not working as expected.
+
+⭐️ [VertX](https://vertx.io/) for the API layer - because of its async nature, VertX seem as an excellent choice for the API layer.
+
+## Should I stay or should I go? 🚶‍♂️‍➡️
+
+I _feel_ potential in this engine, but I am just tired and can not think straight 🤷‍♂️ Let me know.

@@ -12,8 +12,8 @@ POST localhost:8888/list
 ### Save a new item in a list
 # @name save-list
 
-// copy the ID and put it here immediately, to see the queue effect
-POST localhost:8888/list/76ebf6e8-0db8-4bff-ad62-b9bf1c3b72f0/ime
+// copy the ID from created draft and put it here immediately, to experience the queue effect
+POST localhost:8888/list/a633aebf-7270-4b43-9f3d-a274e75a3d30/foo
 
 ### Query a list
 # @name query-list
@@ -24,4 +24,4 @@ GET localhost:8888/list
 
 ### Operations status
 
-GET localhost:8888/ops/2925175e-2039-4342-a06d-6b8e6efd3635
+GET localhost:8888/ops/84c9cd4a-163a-44db-a7f2-2ff4b28d7cbe

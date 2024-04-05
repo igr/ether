@@ -1,16 +1,14 @@
-package dev.oblac.tudu.ether
+package dev.oblac.ether.nats
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import io.nats.client.JetStreamSubscription
-import io.nats.client.Message
-import io.nats.client.MessageHandler
-import io.nats.client.PushSubscribeOptions
+import dev.oblac.ether.*
+import io.nats.client.*
 import io.nats.client.impl.NatsMessage
 import org.slf4j.LoggerFactory
 import java.time.Duration
 
-class NatsEther(private val ngn: NatsEtherNgn) : Ether {
+class NatsEther(val ngn: NatsEtherNgn) : Ether {
     private val log = LoggerFactory.getLogger(this.javaClass)
 
     // we need some sort of serializer
@@ -18,16 +16,13 @@ class NatsEther(private val ngn: NatsEtherNgn) : Ether {
     private val mapper = jacksonObjectMapper()
 
     init {
-        ngn.subjects.forEach {
-            subjectSubscriber(it)
-        }
+        ngn.forEachRealm(::realmSubscriber)
     }
 
     /**
-     * Creates a subscriber for each registered subject.
-     * Subjects represents the boundary?
+     * Creates a subscriber for each registered realm.
      */
-    private fun subjectSubscriber(subject: EventSubject) {
+    private fun realmSubscriber(realm: EventRealm, dispatcher: Dispatcher) {
         val handler = MessageHandler { msg ->
             val json = String(msg.data)
             log.debug("Received message: $json")
@@ -46,8 +41,8 @@ class NatsEther(private val ngn: NatsEtherNgn) : Ether {
             msg.ack()   // ack, even if we don't process it
         }
 
-        val streamName = subject.toString() + "Stream"
-        val subjectName = subject.toString()
+        val streamName = realm.toString() + "Stream"
+        val subjectName = realm.toString()
 
         val so = PushSubscribeOptions.builder()
             .stream(streamName)
@@ -56,14 +51,13 @@ class NatsEther(private val ngn: NatsEtherNgn) : Ether {
 
         // we are using the same dispatcher for all subjects
         // this means that all messages will be processed in the same thread
-        // todo create a dispatcher for each subject?
-        ngn.js.subscribe("${subjectName}.*", ngn.dispatcher, handler, false, so)
+        ngn.js.subscribe("${subjectName}.*", dispatcher, handler, false, so)
         log.info("Subscribed to $subjectName")
     }
 
     override fun emit(event: Event, msgHandler: EtherInPlaceMessageHandler) {
-        val streamName = event.meta.subject.toString() + "Stream"
-        val subjectName = event.meta.subject.toString()
+        val streamName = event.meta.realm.toString() + "Stream"
+        val subjectName = event.meta.realm.toString()
         // append unique timestamp to the subject name, to avoid collisions and distinguish the events
         val emitSubjectName = "${subjectName}.${event.meta.timestamp}"
 
@@ -77,8 +71,11 @@ class NatsEther(private val ngn: NatsEtherNgn) : Ether {
             val msgEvent = mapper.readValue<Event>(json)
             log.info("Emit got it: $msgEvent")
             msgHandler(msgEvent) { s?.drain(Duration.ofMillis(100)) }   // todo do we need finishers?
+            // finisher is added to end the queue and remove the subscription
         }
-        s = ngn.js.subscribe(emitSubjectName, ngn.dispatcher, handler, true, so)
+
+        val dispatcher = ngn.dispatcherOf(event.meta.realm)
+        s = ngn.js.subscribe(emitSubjectName, dispatcher, handler, true, so)
 
         // emit
         val msg: Message = NatsMessage.builder()
@@ -91,7 +88,7 @@ class NatsEther(private val ngn: NatsEtherNgn) : Ether {
     }
 
     override fun emit(event: Event) {
-        val subjectName = event.meta.subject.toString()
+        val subjectName = event.meta.realm.toString()
         val emitSubjectName = "${subjectName}.${event.meta.timestamp}"
 
         val msg: Message = NatsMessage.builder()
@@ -109,32 +106,7 @@ class NatsEther(private val ngn: NatsEtherNgn) : Ether {
             .data(mapper.writeValueAsBytes(event))
             .build()
 
-        log.info("Emit-I event to $subject : $event")
+        log.info("Emit-J event to $subject : $event")
         ngn.js.publishAsync(msg)
-    }
-
-    fun listen(subjects: Array<EventSubject>, ha: (Event) -> Unit) {
-        val handler = MessageHandler { msg ->
-            val json = String(msg.data)
-            log.debug("Received message: $json")
-
-            val event = mapper.readValue<Event>(json)
-            ha(event)
-        }
-
-        // val dispatcher = ngn.nc.createDispatcher()      // ???
-
-        subjects.forEach { subject ->
-            val streamName = subject.toString() + "Stream"
-            val subjectName = subject.toString()
-
-            val so = PushSubscribeOptions.builder()
-                .stream(streamName)
-                .durable("$streamName-Durable")
-                .build()
-
-            ngn.js.subscribe("${subjectName}.*", ngn.dispatcher, handler, false, so)
-            log.info("Listen to $subjects")
-        }
     }
 }

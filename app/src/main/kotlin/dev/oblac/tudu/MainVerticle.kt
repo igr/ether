@@ -77,6 +77,10 @@ class MainVerticle : AbstractVerticle() {
                 }
             }
     }
+
+    override fun stop() {
+        ether.ngn.off()
+    }
 }
 
 // handlers -------------------------------------------------------------------

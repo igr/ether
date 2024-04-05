@@ -5,6 +5,7 @@ plugins {
 dependencies {
     implementation(project(":ether:ether-api"))
     implementation(project(":ether:ether-nats"))
+    implementation(project(":core"))
 
     implementation("io.vertx:vertx-core:4.5.7")
     implementation("io.vertx:vertx-web:4.5.7")

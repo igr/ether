@@ -1,4 +1,4 @@
-package dev.oblac.tudu
+package dev.oblac.tudu.matter
 
 import dev.oblac.tudu.domain.*
 import java.lang.Thread.sleep

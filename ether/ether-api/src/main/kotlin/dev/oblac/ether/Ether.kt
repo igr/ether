@@ -1,4 +1,4 @@
-package dev.oblac.tudu.ether
+package dev.oblac.ether
 
 /**
  * The Ether is the main interface for the events bus.
@@ -33,9 +33,9 @@ interface EtherNgn {
     fun off()
 
     /**
-     * Registers a new subject to the engine.
+     * Registers a new realm to the engine.
      */
-    fun bind(subject: EventSubject)
+    fun bind(realm: EventRealm)
 
     // todo solve this Kotlin reflection issue better
     //fun <IN : Event> bind(pipe: Pipe<IN>)

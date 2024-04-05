@@ -1,5 +1,10 @@
-package dev.oblac.tudu.ether
+package dev.oblac.ether.nats
 
+import dev.oblac.ether.EtherNgn
+import dev.oblac.ether.Event
+import dev.oblac.ether.EventRealm
+import dev.oblac.ether.Pipe
+import io.nats.client.Dispatcher
 import io.nats.client.JetStream
 import io.nats.client.JetStreamManagement
 import io.nats.client.Nats
@@ -10,26 +15,32 @@ import java.time.Duration
 
 class NatsEtherNgn(natsUrl: String) : EtherNgn {
 
-    internal val nc = Nats.connect(natsUrl)
+    private val nc = Nats.connect(natsUrl)
     private val jsm: JetStreamManagement = nc.jetStreamManagement()
-    internal val dispatcher = nc.createDispatcher()
     val js: JetStream = nc.jetStream()
 
     override fun off() {
         nc.close()
     }
 
-    // subjects
-    internal val subjects = mutableSetOf<EventSubject>()
+    // subjects and dispatchers
+
+    private val realms = mutableMapOf<EventRealm, Dispatcher>()
+
+    fun forEachRealm(consumer: (EventRealm, Dispatcher) -> Unit) {
+        realms.forEach(consumer)
+    }
+
+    internal fun dispatcherOf(realm: EventRealm): Dispatcher = realms[realm]!!
 
     @Synchronized
-    override fun bind(subject: EventSubject) {
-        if (subject in subjects) {
+    override fun bind(realm: EventRealm) {
+        if (realm in realms) {
             return
         }
 
-        val streamName = subject.toString() + "Stream"
-        val subjectName = subject.toString()
+        val streamName = realm.toString() + "Stream"
+        val subjectName = realm.toString()
 
         // Build the configuration
         val sc = StreamConfiguration.builder()
@@ -43,7 +54,7 @@ class NatsEtherNgn(natsUrl: String) : EtherNgn {
 
         jsm.addStream(sc)
 
-        subjects.add(subject)
+        realms[realm] = nc.createDispatcher()
     }
 
     // pipes

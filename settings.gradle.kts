@@ -3,10 +3,11 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.7.0"
 }
 
-rootProject.name = "tudu"
+rootProject.name = "ether"
 include(
-    "app",
     "ether",
     "ether:ether-api",
-    "ether:ether-nats"
+    "ether:ether-nats",
+    "core",
+    "app"
 )

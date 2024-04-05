@@ -1,6 +1,6 @@
 package dev.oblac.tudu
 
-import dev.oblac.tudu.ether.Event
+import dev.oblac.ether.Event
 import java.util.*
 
 /**
@@ -8,7 +8,7 @@ import java.util.*
  * We never return the actual status of the operation, as we are not blocking anything.
  * Here we store the operation statuses asynchronously, and the client can poll for the status.
  * This is a very simple and dump implementation, just to show the concept.
- * todo this propbably should be renamed and move to Ether.
+ * todo this probably should be renamed and move to Ether.
  */
 object UIOperations {
 

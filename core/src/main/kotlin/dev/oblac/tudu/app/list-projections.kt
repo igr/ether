@@ -1,9 +1,9 @@
 package dev.oblac.tudu.app
 
-import dev.oblac.tudu.Store
-import dev.oblac.tudu.ether.BlackHole
-import dev.oblac.tudu.ether.Pipe
+import dev.oblac.ether.BlackHole
+import dev.oblac.ether.Pipe
 import dev.oblac.tudu.event.ToDoListSaved
+import dev.oblac.tudu.matter.Store
 
 object TodoListsProjection {
     var todoLists = Store.todoLists()   // initial state
