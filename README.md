@@ -4,7 +4,7 @@ Welcome to Event Drive thought experiment ended up as a small engine.
 
 ⚠️ This is `Either<Stupid, Great>`, still can't figure. Built in 3 days time.
 
-Frankly, there is nothing new here; but I didn't see this exact combination of ideas in the wild.
+Frankly, there is nothing new here; but I didn't see this exact combination of ideas in the wild. 🤷‍♂️
 
 ## Pipes 🌊
 
@@ -176,7 +176,7 @@ Check out the `http` folder.
 
 ## Should I stay or should I go? 🚶‍♂️‍➡️
 
-I _feel_ potential in this engine, but I am just tired and can not think straight 🤷‍♂️ Let me know.
+I _feel_ potential in this engine, but I am just tired and can not think straight 🤷‍♂️ Let me know. There is so many things that can be done here...
 
 + If this make sense, I would like to thank: [Dejan](https://github.com/DejanMilicic), [Ivan](https://fraktalio.com). They know way more than me about this stuff.
 + If this is stupid, that's on me only :)
