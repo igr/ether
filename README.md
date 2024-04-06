@@ -4,6 +4,8 @@ Welcome to Event Drive thought experiment ended up as a small engine.
 
 ⚠️ This is `Either<Stupid, Great>`, still can't figure. Built in 3 days time.
 
+Frankly, there is nothing new here; but I didn't see this exact combination of ideas in the wild.
+
 ## Pipes 🌊
 
 ```
