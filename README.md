@@ -4,10 +4,11 @@ Welcome to Event Drive thought experiment ended up as a small engine.
 
 ⚠️ This is `Either<Stupid, Great>`, still can't figure. Built in 3 days time.
 
-+ If this make sense, I would like to thank: [Dejan](https://github.com/DejanMilicic), [Ivan](https://fraktalio.com). They know way more than me about this stuff.
-+ If this is stupid, that's on me only :)
-
 ## Pipes 🌊
+
+```
+Pipe == Input -> UnitOfWork -> Output
+```
 
 ⭐️ Every app in the nutshell is a event-driven app. The **unit of work** (UOW) is just a function of a _single_ input, producing a _single_ output. We can connect UOWs by their input/output types, like... pipes. Hence we refer the UOW as a **pipe**.
 
@@ -29,6 +30,10 @@ val createToDoList = Pipe<ToDoListCreateRequested> {
 ```
 
 ## Ether ♒
+
+```
+Ether == mesh of Pipes
+```
 
 ⭐️ `Ether` is a glorious name for the Event bus engine abstraction that connects pipes and runs events on it. It is a very simple abstraction, that can be implemented in various ways. In this case, it is implemented with [NATS](https://nats.io/).
 
@@ -58,6 +63,10 @@ Cool thing here is that provided lambda ONLY listens to events in the context of
 
 ## Events ⚡️
 
+```
+Event == Input, Output, Fact
+```
+
 ⭐️ Events belong to a **Realm**. Realm is a simple name that represents a boundary.
 
 ⭐️ Events are executed one after the another, in the single-threaded fashion, _within the same boundary_. This is important, as it allows us to have a consistent state of the application.
@@ -65,6 +74,8 @@ Cool thing here is that provided lambda ONLY listens to events in the context of
 ⭐️ `BlackHole` is a sink event. It is a special event that is not emitted by any pipe. It is used to terminate the event flow. It is like a `null` in the event world.
 
 Pipes that are updating _projections_ are the ones that usually returns the `BlackHole` event.
+
+🤔 You realized by now that `Pipe` can be actually any serializable data object, right?
 
 ## Matter ⚛️
 
@@ -131,6 +142,12 @@ Piper(matter)(saveToDoList)
 
 ## Infrastructure ⚙️
 
+```
+Instrastructure == Implementation
+```
+
+⭐️ The big idea here is that infrastructure is an implementation detail.
+
 ⭐️ [NATS](https://nats.io) cluster with JetStream - used as the _implementation_ of the `Ether` in the example. `Ether` itself has very simple interface (abstraction) that could be easily replaced with another event engine. Moreover, we can have an in-memory implementation for local development and testing.
 
 With Nats, pipes can be deployed anywhere. There is also an option that I didn't have time to explore for horizontal scaling of the pipes (using Nats groups).
@@ -139,6 +156,25 @@ With Nats, pipes can be deployed anywhere. There is also an option that I didn't
 
 ⭐️ [VertX](https://vertx.io/) for the API layer - because of its async nature, VertX seem as an excellent choice for the API layer.
 
+
+## Example 🎉
+
+This very simple example illustrates the idea.
+
++ REST endpoint that triggers the creation of the ToDo list (async)
++ Operation tracker that returns the status of the operation (async)
++ Connected pipes
++ Update of the projection
++ In-Place handler
++ Distributed pipes
+
+The storage atm is just a simple in-memory map.
+
+Check out the `http` folder.
+
 ## Should I stay or should I go? 🚶‍♂️‍➡️
 
 I _feel_ potential in this engine, but I am just tired and can not think straight 🤷‍♂️ Let me know.
+
++ If this make sense, I would like to thank: [Dejan](https://github.com/DejanMilicic), [Ivan](https://fraktalio.com). They know way more than me about this stuff.
++ If this is stupid, that's on me only :)
