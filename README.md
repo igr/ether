@@ -1,10 +1,16 @@
 # **`Ether`** ♒️ & **`Matter`** ⚛️
 
-Welcome to Event Drive thought experiment ended up as a small engine.
+Welcome to Event Drive thought experiment ended up as a blueprint for a small engine.
 
 ⚠️ This is `Either<Stupid, Great>`, still can't figure. Built in 3 days time.
 
 Frankly, there is nothing new here; but I didn't see this exact combination of ideas in the wild. 🤷‍♂️
+
+The premise:
+
+> We can build distributed, scalable event-driven app with only **4** abstractions: `Pipe`, `Event`, `Realm`, `Ether`. If we add fifth: `Matter`, we can achieve a pure business logic.
+
+Every app is an event-driven app.
 
 ## Pipes 🌊
 
@@ -12,15 +18,17 @@ Frankly, there is nothing new here; but I didn't see this exact combination of i
 Pipe == Input -> UnitOfWork -> Output
 ```
 
-⭐️ Every app in the nutshell is a event-driven app. The **unit of work** (UOW) is just a function of a _single_ input, producing a _single_ output. We can connect UOWs by their input/output types, like... pipes. Hence we refer the UOW as a **pipe**.
+⭐️ The **unit of work** (UOW) is just a function of a _single_ input, producing a _single_ output. We can connect UOWs by their input/output types, like... pipes. Hence we refer the UOW as a **pipe**.
 
-⭐️ A **pipe** is a function that takes an _input_ and produces an _output_. It represents a **unit of work**. Pipes can be connected to each other, forming a mesh.
+**Q**: Why single input/output? Bear with me. We can always aggregate any number of related objects into a single object, so it is not a limitation.
 
-Pipe receives _only_ a `Event`. Pipe produces _only_ a `Event`. Events are connections between pipes. Is a pipe a _event handler_? Possibly. Is a pipe a _command_? Possibly.
+⭐️ A **pipe** is a function that takes a single _input_ and produces a single _output_. It represents a **unit of work**. Due to singular input/outputs, pipes can be connected to each other, forming a mesh.
 
 We may say that the application is a mesh of pipes, connected together. Here is a beautiful schema that illustrates the idea:
 
 ![](./doc/mesh.png)
+
+Blue arrow represent pipes, connected to each other.
 
 Example of a pipe:
 
@@ -31,13 +39,38 @@ val createToDoList = Pipe<ToDoListCreateRequested> {
 }
 ```
 
+## Events ⚡️
+
+```
+Event == Fact, Message, Input, Output
+```
+
+⭐️ `Event` has a multitude of meanings. It is a **fact** that something happened. It is a **message** that is passed between pipes. It is an **input** to the pipe. It is an **output** of the pipe. It connects pipes together. Does that make pipe a _event handler_? Possibly. Is a pipe a _command_? Possibly.
+
+⭐️ `Event` holds only the necessary data for the pipe to do its work. It is a simple data object. It is serializable.
+
+⭐️ `BlackHole` is a sink event. It is a special event, used to terminate the event flow. It is like a `null` in the event world.
+
+Pipes that are updating _projections_ are the ones that usually returns the `BlackHole` event.
+
+## Realm 🌌
+
+⭐️ Events belong to a **Realm**. Realm is a simple name that represents a boundary.
+
+⭐️ Events are executed one after the another, in the single-threaded fashion, _within the same boundary_. This is important, as it allows us to have a consistent state of the application.
+
+Having single-threaded pipe execution is a big deal, as it simplifies the state handling. We don't need to worry about the concurrent state changes. Realm allows parallel execution of the pipes in different realms.
+
+⭐️ Realm is distributed, spread over the nodes.
+
+
 ## Ether ♒
 
 ```
-Ether == mesh of Pipes
+Ether == Runner
 ```
 
-⭐️ `Ether` is a glorious name for the Event bus engine abstraction that connects pipes and runs events on it. It is a very simple abstraction, that can be implemented in various ways. In this case, it is implemented with [NATS](https://nats.io/).
+⭐️ `Ether` is a glorious name for the Event bus engine abstraction that connects pipes and runs events on it. It is a very simple abstraction, that can be implemented in various ways. In this example, it is implemented with [NATS](https://nats.io/).
 
 Event may be fired (and forget):
 
@@ -63,21 +96,13 @@ ether.emit(ToDoListSaveRequested(listId, name)) { event, finish ->
 
 Cool thing here is that provided lambda ONLY listens to events in the context of the current execution. It is NOT a global listener. Again, ONLY events that are created by pipes executed during this operation will be handled. This is cool when we want to have a listener that is only active during the current operation (non-blocking request/response)
 
-## Events ⚡️
+⭐️ `Ether` is distributed! Pipes may be placed on different nodes:
 
-```
-Event == Input, Output, Fact
-```
+![](./doc/mesh-2.png)
 
-⭐️ Events belong to a **Realm**. Realm is a simple name that represents a boundary.
+When the event `A` is fired, it will execute `foo` on node 1 and then `bar` on node 2.
 
-⭐️ Events are executed one after the another, in the single-threaded fashion, _within the same boundary_. This is important, as it allows us to have a consistent state of the application.
-
-⭐️ `BlackHole` is a sink event. It is a special event that is not emitted by any pipe. It is used to terminate the event flow. It is like a `null` in the event world.
-
-Pipes that are updating _projections_ are the ones that usually returns the `BlackHole` event.
-
-🤔 You realized by now that `Pipe` can be actually any serializable data object, right?
+⭐️  Pipe also may be horizontally scaled (⚠️ not implemented in this example). That would mean that the `foo` pipe is executed on multiple nodes, but only one of them will handle the event.
 
 ## Matter ⚛️
 
@@ -148,7 +173,7 @@ Piper(matter)(saveToDoList)
 Instrastructure == Implementation
 ```
 
-⭐️ The big idea here is that infrastructure is an implementation detail.
+⭐️ Infrastructure is an implementation detail.
 
 ⭐️ [NATS](https://nats.io) cluster with JetStream - used as the _implementation_ of the `Ether` in the example. `Ether` itself has very simple interface (abstraction) that could be easily replaced with another event engine. Moreover, we can have an in-memory implementation for local development and testing.
 
@@ -176,7 +201,15 @@ Check out the `http` folder.
 
 ## Should I stay or should I go? 🚶‍♂️‍➡️
 
-I _feel_ potential in this engine, but I am just tired and can not think straight 🤷‍♂️ Let me know. There is so many things that can be done here...
+I _feel_ potential in this engine, but I am just tired and can not think straight 🤷‍♂️ **Let me know.**
+
+TODO:
+
++ [ ] Horizontal scaling of the pipes using Nats groups
++ [ ] Add Postgress example
++ [ ] Add Event Sourcing example
+
+Finally:
 
 + If this make sense, I would like to thank: [Dejan](https://github.com/DejanMilicic), [Ivan](https://fraktalio.com). They know way more than me about this stuff.
 + If this is stupid, that's on me only :)
