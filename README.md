@@ -1,6 +1,6 @@
 # **`Ether`** ♒️ & **`Matter`** ⚛️
 
-Welcome to Event Drive thought experiment ended up as a blueprint for a small engine.
+Welcome to Event-Driven thought experiment ended up as a blueprint for a small engine.
 
 ⚠️ This is `Either<Stupid, Great>`, still can't figure. Built in 3 days time.
 
@@ -10,7 +10,11 @@ The premise:
 
 > We can build distributed, scalable event-driven app with only **4** abstractions: `Pipe`, `Event`, `Realm`, `Ether`. If we add fifth: `Matter`, we can achieve a pure business logic.
 
-Every app is an event-driven app.
+And:
+
+> Whether the app is a simple CRUD or a complex event-sourced system, the abstractions should stay the same. The business logic should be pure, event-management and the state handling should be extracted
+
+Every app is an event-driven app. We should focus on the business functionalities. The actual state handling and event management should be abstracted away. We should be able to _change_ the implementation of the infrastructure without changing the business logic _any time_. For example, you could switch from a traditional database to an event-sourced system without changing the business logic.
 
 ## Pipes 🌊
 
@@ -28,7 +32,7 @@ We may say that the application is a mesh of pipes, connected together. Here is 
 
 ![](./doc/mesh.png)
 
-Blue arrow represent pipes, connected to each other.
+Blue arrows represent pipes, connected to each other.
 
 Example of a pipe:
 
@@ -39,15 +43,21 @@ val createToDoList = Pipe<ToDoListCreateRequested> {
 }
 ```
 
+That's it, no surprises here.
+
+**Q**: What about errors/exceptions? There is no such thing as business exception. There is only a _fact_ that something happened - or failed to happen. The failure is just another resulting event.
+
 ## Events ⚡️
 
 ```
 Event == Fact, Message, Input, Output
 ```
 
-⭐️ `Event` has a multitude of meanings. It is a **fact** that something happened. It is a **message** that is passed between pipes. It is an **input** to the pipe. It is an **output** of the pipe. It connects pipes together. Does that make pipe a _event handler_? Possibly. Is a pipe a _command_? Possibly.
+⭐️ `Event` has a multitude of meanings. It is a **fact** that something happened. It is a **message** passed between pipes. It is an **input** to the pipe. It is an **output** of the pipe. It connects pipes together.
 
-⭐️ `Event` holds only the necessary data for the pipe to do its work. It is a simple data object. It is serializable.
+**Q**: Is a pipe actually a _event handler_? Possibly. Is a pipe a _command_? Possibly. I just like to think of it as a _unit of work_.
+
+⭐️ `Event` holds the necessary data for the pipe to do its work. It is a simple serializable data object.
 
 ⭐️ `BlackHole` is a sink event. It is a special event, used to terminate the event flow. It is like a `null` in the event world.
 
@@ -61,8 +71,7 @@ Pipes that are updating _projections_ are the ones that usually returns the `Bla
 
 Having single-threaded pipe execution is a big deal, as it simplifies the state handling. We don't need to worry about the concurrent state changes. Realm allows parallel execution of the pipes in different realms.
 
-⭐️ Realm is distributed, spread over the nodes.
-
+⭐️ Realm is distributed, i.e. realms may spread over the nodes. You may simply deploy realms on different nodes, allowing each node to handle a different realm (in single-threaded fashion).
 
 ## Ether ♒
 
@@ -78,7 +87,7 @@ Event may be fired (and forget):
 ether.emit(ToDoListCreateRequested(id))
 ```
 
-This will trigger the execution of all pipes connected somehow to the initial event. The execution is asynchronous and non-blocking to the calling place.
+This will trigger the execution of all pipes connected somehow to the initial event. The execution is asynchronous and non-blocking the calling point.
 
 Event may be fired with a in-place listener:
 
@@ -94,7 +103,7 @@ ether.emit(ToDoListSaveRequested(listId, name)) { event, finish ->
 }
 ```
 
-Cool thing here is that provided lambda ONLY listens to events in the context of the current execution. It is NOT a global listener. Again, ONLY events that are created by pipes executed during this operation will be handled. This is cool when we want to have a listener that is only active during the current operation (non-blocking request/response)
+Cool thing here is that provided lambda ONLY listens to events in the context of the _current_ execution. It is NOT a global listener. Again, ONLY events that are created by pipes executed during this operation will be handled. This is cool when we want to have a listener that is only active during the current operation (non-blocking request/response)
 
 ⭐️ `Ether` is distributed! Pipes may be placed on different nodes:
 
@@ -102,7 +111,7 @@ Cool thing here is that provided lambda ONLY listens to events in the context of
 
 When the event `A` is fired, it will execute `foo` on node 1 and then `bar` on node 2.
 
-⭐️  Pipe also may be horizontally scaled (⚠️ not implemented in this example). That would mean that the `foo` pipe is executed on multiple nodes, but only one of them will handle the event.
+⭐️  Pipe also may be horizontally scaled (⚠️ not implemented in this example). That would mean that the `foo` pipe is executed on multiple nodes, but only one of them will handle the event. This happens out-of-box by simply deploying the same pipe on the multiple nodes.
 
 ## Matter ⚛️
 
@@ -110,7 +119,7 @@ When the event `A` is fired, it will execute `foo` on node 1 and then `bar` on n
 Pipe = Pure + Matter
 ```
 
-We can go further with abstractions and remove explicit state handling from the `Pipe` functions. This is where the `Matter` comes in. It is a simple interface that knows how to:
+We can optionally go further with abstractions and remove explicit state handling from the `Pipe` functions. This is where the `Matter` comes in. It is a simple interface that knows how to:
 
 + load state from the storage for given (input) event
 + save state to the storage for given (resulting) event
@@ -153,7 +162,9 @@ val saveToDoList = Pure<ToDoListSaveRequested, SaveToDoListState> { _, it ->
 }
 ```
 
-It is a pure function! Is it a `decider`/`evolver`? Possibly.
+It is a pure function!
+
+**Q**: Is it a `decider`/`evolver` combined? Possibly.
 
 `Pure` function is transformed into a `Pipe` by the... well, `Piper`:
 
@@ -164,13 +175,13 @@ Piper(matter)(saveToDoList)
 ⭐️ `Matter` may be implemented in various ways:
 
 + transactional, traditional database
-+ in-memory, for testing
++ in-memory, for testing and local development
 + event-sourced, for the event-sourced systems
 
 ## Infrastructure ⚙️
 
 ```
-Instrastructure == Implementation
+Instrastructure == Implementation detail
 ```
 
 ⭐️ Infrastructure is an implementation detail.
@@ -201,12 +212,12 @@ Check out the `http` folder.
 
 ## Should I stay or should I go? 🚶‍♂️‍➡️
 
-I _feel_ potential in this engine, but I am just tired and can not think straight 🤷‍♂️ **Let me know.**
+I _feel_ potential in presented concepts and this engine, but I am just tired and can not think straight 🤷‍♂️ **Let me know.**
 
 TODO:
 
 + [ ] Horizontal scaling of the pipes using Nats groups
-+ [ ] Add Postgress example
++ [ ] Add Postgres example
 + [ ] Add Event Sourcing example
 
 Finally:
