@@ -7,7 +7,7 @@ services:
             - "4222:4222"
         command: "--name N1 --cluster_name NATS --js --sd /data --cluster nats://0.0.0.0:6222 --routes nats://n1:6222,nats://n2:6222,nats://n3:6222"
         volumes:
-            - ./nats-data/n1:/data
+            - ./volumes/n1:/data
         networks: ["nats"]
         restart: on-failure
     n2:
@@ -16,7 +16,7 @@ services:
         ports:
             - "4223:4222"
         volumes:
-            - ./nats-data/n2:/data
+            - ./volumes/n2:/data
         networks: ["nats"]
         restart: on-failure
     n3:
@@ -25,10 +25,23 @@ services:
         ports:
             - "4224:4222"
         volumes:
-            - ./nats-data/n3:/data
+            - ./volumes/n3:/data
         networks: ["nats"]
         restart: on-failure
-
+    postgres:
+        image: postgres:16-alpine
+        ports:
+            - "15432:5432"
+        volumes:
+            - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+            - ./volumes/postgres:/var/lib/postgresql/data
+        environment:
+            - POSTGRES_PASSWORD=S3cret
+            - POSTGRES_USER=user
+            - POSTGRES_DB=tudu
+volumes:
+    redis:
+        driver: local
 networks:
     nats:
         name: nats
