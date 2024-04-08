@@ -105,6 +105,8 @@ ether.emit(ToDoListSaveRequested(listId, name)) { event, finish ->
 
 Cool thing here is that provided lambda ONLY listens to events in the context of the _current_ execution. It is NOT a global listener. Again, ONLY events that are created by pipes executed during this operation will be handled. This is cool when we want to have a listener that is only active during the current operation (non-blocking request/response)
 
+⭐️ Pipes are never invoked directly - there must be an event that triggers the execution. Only `Ether` executes pipes.
+
 ⭐️ `Ether` is distributed! Pipes may be placed on different nodes:
 
 ![](./doc/mesh-2.png)
